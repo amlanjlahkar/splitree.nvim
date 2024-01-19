@@ -2,15 +2,18 @@ I don't use a filetree navigation system inside (neo)vim but occasionally when n
 
 For this I wrote **`:Splitree`**, a user command which allows me to check current file's location inside current working directory.
 
+[![demo](https://asciinema.org/a/632258.svg)](https://asciinema.org/a/632258)
 
-### Requirements
+---
+
+## Requirements
 
 - Neovim >= 0.8.0
 - [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) (for asynchronous process execution)
 - The Unix `tree` command available in $PATH
 
 
-### Installation and Usage
+## Installation and Usage
 
 Install as any other normal plugin.
 
@@ -27,7 +30,7 @@ require("splitree").setup({
 })
 ```
 
-### Drawbacks
+## Drawbacks
 
 As of now, the logic that determines the location of the required file in the output buffer is quite fragile.
 I wrote it to serve my need without worrying much about optimization and potential edge cases still be present which may lead to failure in identification.
