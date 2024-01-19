@@ -9,9 +9,9 @@ local M = {}
 
 M.splitree = function(args)
     local fpath = fn.expand("%:p")
-    local f = uv.fs_statfs(fpath)
+    local f = uv.fs_stat(fpath)
 
-    if not f or f.type ~= 26 then
+    if not f or f.type ~= "file" then
         notify("Not a valid file", vim.log.levels.ERROR)
         return
     end
