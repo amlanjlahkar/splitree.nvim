@@ -107,7 +107,7 @@ M.create_buf = vim.schedule_wrap(function(args, url, fpath)
         end)
 
         api.nvim_buf_set_name(bufnr, url)
-        api.nvim_buf_set_option(bufnr, "ft", "filetree")
+        api.nvim_buf_set_option(bufnr, "ft", "splitree")
 
         vim.defer_fn(function()
             M.view_buf(bufnr)
