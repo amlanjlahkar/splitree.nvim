@@ -1,6 +1,7 @@
 local api = vim.api
 local fn = vim.fn
 local uv = vim.loop
+local notify = require("utils.notify").notify
 
 local markname = "f"
 
@@ -15,10 +16,11 @@ M.load_buf = function(bufnr, mark)
     api.nvim_buf_add_highlight(bufnr, ns_id, "PmenuSel", mark[1] - 1, mark[2], -1)
     api.nvim_buf_set_option(bufnr, "ma", false)
     vim.cmd("vsp | buf " .. bufnr)
-    api.nvim_win_set_option(0, "stc", "")
-    api.nvim_win_set_option(0, "nu", false)
-    api.nvim_win_set_option(0, "rnu", false)
-    api.nvim_win_set_cursor(0, mark)
+    local winid = api.nvim_get_current_win()
+    api.nvim_win_set_option(winid, "stc", "")
+    api.nvim_win_set_option(winid, "nu", false)
+    api.nvim_win_set_option(winid, "rnu", false)
+    api.nvim_win_set_cursor(winid, mark)
     vim.cmd("wincmd p")
 end
 
@@ -30,7 +32,7 @@ M.view_buf = function(bufnr)
     if mark[1] > 0 and mark[2] > 0 then
         M.load_buf(bufnr, mark)
     else
-        require("utils.notify").notify("Loading filetree...", vim.log.levels.INFO)
+        notify("Loading filetree...", vim.log.levels.INFO)
         vim.defer_fn(function()
             M.load_buf(bufnr, api.nvim_buf_get_mark(bufnr, markname))
         end, 5000)
@@ -39,18 +41,22 @@ end
 
 ---Create the filetree buffer.
 ---@param args table List of arguments to pass to `tree`
----@param url string Custom url to use as buffer name
 ---@param fpath string Absolute filepath of current file
-M.create_buf = vim.schedule_wrap(function(args, url, fpath)
+---@param ft string Filetype to set for buffer
+---@param url string Url to use as buffer name
+M.create_buf = vim.schedule_wrap(function(args, fpath, ft, url)
     local def_args = {
-        "-anlF",
-        "--dirsfirst",
-        "--gitignore",
+        "-a", -- list all files
+        "-l", -- follow symlinks
+        "-n", -- turn off colorization
+        "-F", -- append file type indicator
+        "--dirsfirst", -- list directories first(!IMPORTANT!)
+        "--gitignore", -- ignore git files
         "-I",
-        ".git",
+        ".git", -- ignore .git directory
     }
 
-    args = args and vim.tbl_flatten({ args, "--dirsfirst" }) or def_args
+    args = vim.tbl_isempty(args) and def_args or vim.tbl_flatten({ args, "-n", "--dirsfirst" })
 
     local bufnr = require("utils.jobwrite").jobstart("tree", args, uv.cwd())
 
@@ -68,35 +74,35 @@ M.create_buf = vim.schedule_wrap(function(args, url, fpath)
                 fpath_comps = vim.split(fn.fnamemodify(fn.resolve(fpath), ":."), "/", { plain = true })
             end
 
+            local set_mark = function(line, col)
+                api.nvim_buf_set_mark(bufnr, markname, line, col, {})
+                return true
+            end
+
             local idx = 1
 
             api.nvim_buf_attach(bufnr, false, {
-                on_lines = function(_, _, _, _, cfline)
-                    local line = api.nvim_buf_get_lines(bufnr, cfline, cfline + 1, false)[1]
+                on_lines = function(_, _, _, _, lastline, lastline_up)
+                    local line = api.nvim_buf_get_lines(bufnr, lastline, lastline_up, true)[1]
 
-                    local cfname_idx = (line:find("[%w%.%_]"))
+                    local fname_col = (line:find("[%w%.%_]"))
 
-                    local cfname = line:sub(cfname_idx)
+                    local fname = line:sub(fname_col)
 
-                    local set_mark = function()
-                        api.nvim_buf_set_mark(bufnr, markname, cfline + 1, cfname_idx - 1, {})
-                        return true
-                    end
+                    local matched_col = (fname:find(string.format("^%s[/=|%%*]?$", fpath_comps[idx])))
 
-                    local is_valid = (cfname:find(string.format("^%s[/=|%%*]?$", fpath_comps[idx])))
-
-                    if cfname == fpath_comps[idx] or is_valid then
+                    if fname == fpath_comps[idx] or matched_col then
                         if idx == #fpath_comps then
                             if is_fullpath then
-                                set_mark()
+                                set_mark(lastline_up, fname_col - 1)
                             end
 
-                            local depth = cfname_idx and math.floor(((cfname_idx - 1) / 5) - 1) or -1
+                            local depth = fname_col and math.floor(((fname_col - 1) / 5) - 1) or -1
 
                             if depth ~= #fpath_comps then
                                 idx = 0
                             else
-                                set_mark()
+                                set_mark(lastline_up, fname_col - 1)
                             end
                         end
 
@@ -106,8 +112,8 @@ M.create_buf = vim.schedule_wrap(function(args, url, fpath)
             })
         end)
 
+        api.nvim_buf_set_option(bufnr, "ft", ft)
         api.nvim_buf_set_name(bufnr, url)
-        api.nvim_buf_set_option(bufnr, "ft", "splitree")
 
         vim.defer_fn(function()
             M.view_buf(bufnr)

@@ -16,10 +16,11 @@ M.splitree = function(args)
         return
     end
 
+    local ft = "splitree"
     local url = "sptree://" .. fpath
 
     require("utils.display"):init(url, buf.view_buf, function()
-        buf.create_buf(args, url, fpath)
+        buf.create_buf(args, fpath, ft, url)
     end)
 end
 
