@@ -6,11 +6,13 @@ For this I wrote **`:Splitree`**, a user command which allows me to check curren
 
 ---
 
+
 ## Requirements
 
 - Neovim >= 0.8.0
 - [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) (for asynchronous process execution)
 - The Unix `tree` command available in $PATH
+
 
 
 ## Installation and Usage
@@ -29,6 +31,21 @@ require("splitree").setup({
     args = { "-I", "node_modules" },
 })
 ```
+If no arguments are passed, the default ones are used.
+
+```lua
+local def_args = {
+    "-a", -- list all files
+    "-l", -- follow symlinks
+    "-n", -- turn off colorization
+    "-F", -- append file type indicator
+    "--dirsfirst", -- list directories first(!IMPORTANT!)
+    "--gitignore", -- ignore git files
+    "-I",
+    ".git", -- ignore .git directory
+}
+```
+
 
 ## Drawbacks
 
@@ -38,3 +55,4 @@ I wrote it to serve my need without worrying much about optimization and potenti
 Secondly, it's not compatible with windows at this moment.
 
 PRs addressing any of these issues are encouraged and welcomed.
+
